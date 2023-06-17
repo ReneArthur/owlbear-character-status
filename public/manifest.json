@@ -1,0 +1,12 @@
+{
+  "name": "Character Status",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "action": {
+    "title": "Character Status",
+    "icon": "/icon.svg",
+    "popover": "/",
+    "height": 600,
+    "width": 400
+  }
+}
