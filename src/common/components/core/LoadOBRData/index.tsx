@@ -59,17 +59,18 @@ export function LoadOBRData({ children }: LoadOBRDataProps) {
             }
           }
         )
-        .catch(() => {
+        .catch((err) => {
+          console.log(err);
           setIsOBRError(true);
         });
     });
   }, []);
 
-  if (!OBRData) {
-    return <CircularProgress />;
-  }
   if (isOBRError) {
     return <Typography>Owlbear Rodeo Error</Typography>;
+  }
+  if (!OBRData) {
+    return <CircularProgress />;
   }
 
   return (
