@@ -3,6 +3,7 @@ import Typography from "@mui/material/Typography";
 import OBR from "@owlbear-rodeo/sdk";
 import { useEffect, useState } from "react";
 import { ThemeProvider } from "../ThemeProvider.tsx";
+import type { AppMetadata } from "@common/types/AppMetadata.type.ts";
 import type { Character as CharacterType } from "@common/types/Character.type";
 import type { Config as ConfigType } from "@common/types/Config.type";
 import type { Player as PlayerType } from "@common/types/Player.type";
@@ -10,7 +11,6 @@ import type { Theme as OBRThemeType } from "@owlbear-rodeo/sdk";
 import type { ReactNode } from "react";
 import { OBRMetadataId } from "@common/assets/OBRMetadataId";
 import { AppContextProvider } from "@common/context/AppContextProvider";
-import { isRoomMetadata } from "@common/utils/isRoomMetadata";
 
 interface LoadOBRDataProps {
   children: ReactNode;
@@ -44,19 +44,21 @@ export function LoadOBRData({ children }: LoadOBRDataProps) {
             playerName,
             playerRole,
           ]) => {
-            if (isRoomMetadata(roomMetadata[OBRMetadataId])) {
-              setOBRData({
-                theme,
-                config: roomMetadata[OBRMetadataId].config ?? {},
-                characters: roomMetadata[OBRMetadataId].characters ?? [],
-                player: {
-                  id: OBR.player.id,
-                  connectionId: playerConnectionId,
-                  name: playerName,
-                  role: playerRole,
-                },
-              });
-            }
+            const appMetadata = roomMetadata[
+              OBRMetadataId
+            ] as Partial<AppMetadata>;
+
+            setOBRData({
+              theme,
+              config: appMetadata?.config ?? {},
+              characters: appMetadata?.characters ?? [],
+              player: {
+                id: OBR.player.id,
+                connectionId: playerConnectionId,
+                name: playerName,
+                role: playerRole,
+              },
+            });
           }
         )
         .catch((err) => {
