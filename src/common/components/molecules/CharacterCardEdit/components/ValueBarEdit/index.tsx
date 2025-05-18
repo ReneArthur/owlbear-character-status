@@ -5,12 +5,13 @@ import Popover from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useImmerReducer } from "use-immer";
 import { v4 as uuidv4 } from "uuid";
 import type { BarConfig } from "@common/types/BarConfig.type";
 import type { Values } from "@common/types/ValueBarProps.type";
 import { useCharacter } from "@common/context/character/useCharacter";
+import { useDebounce } from "@common/hooks/useDebounce";
 
 type ValueBarEditProps = {
   values: Values;
@@ -63,10 +64,17 @@ export function ValueBarEdit({
   // damagedColor,
   values,
 }: ValueBarEditProps) {
-  const barEl = useRef();
-  const currentInput = useRef<HTMLInputElement>();
-  const totalInput = useRef<HTMLInputElement>();
   const { editBarValue } = useCharacter();
+  const barEl = useRef();
+
+  const [currentInput, setCurrentInput] = useState(String(values.current));
+  const [totalInput, setTotalInput] = useState(String(values.total));
+
+  const updateValuesDebounced = useDebounce(() => {
+    dispatch(
+      updateValues({ current: Number(currentInput), total: Number(totalInput) })
+    );
+  }, 500);
 
   const reducer = useCallback(
     (state: ValueBarState, action: ValueBarAction) => {
@@ -74,8 +82,6 @@ export function ValueBarEdit({
         case ValueBarActionType.CHANGE_CURRENT: {
           if (isNaN(action.payload)) return;
           if (action.payload < 0) return;
-
-          if (action.payload > state.values.total) return;
 
           editBarValue(characterId, barIndexId, { current: action.payload });
 
@@ -96,7 +102,12 @@ export function ValueBarEdit({
           return;
         }
         case ValueBarActionType.UPDATE_VALUES: {
+          if (action.payload.current < 0) {
+            action.payload.current = 0;
+          }
           state.values = action.payload;
+
+          editBarValue(characterId, barIndexId, state.values);
         }
       }
     },
@@ -111,6 +122,16 @@ export function ValueBarEdit({
   useEffect(() => {
     dispatch(updateValues(values));
   }, [dispatch, values]);
+
+  useEffect(() => {
+    updateValuesDebounced();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentInput, totalInput]);
+
+  useEffect(() => {
+    setCurrentInput(String(state.values.current));
+    setTotalInput(String(state.values.total));
+  }, [state.values]);
 
   return (
     <>
@@ -136,17 +157,13 @@ export function ValueBarEdit({
           id={barId}
           open={state.isEditBarOpen}
           onClose={() => {
-            if (currentInput.current) {
-              const currentValue = Number(currentInput.current.value);
-              if (currentValue !== state.values.current) {
-                dispatch(changeCurrent(currentValue));
-              }
+            const currentInputNum = Number(currentInput);
+            if (currentInputNum !== state.values.current) {
+              dispatch(changeCurrent(currentInputNum));
             }
-            if (totalInput.current) {
-              const totalValue = Number(totalInput.current.value);
-              if (totalValue !== state.values.total) {
-                dispatch(changeCurrent(totalValue));
-              }
+            const totalInputNum = Number(totalInput);
+            if (totalInputNum !== state.values.total) {
+              dispatch(changeCurrent(totalInputNum));
             }
             dispatch(toggleBarEdit(false));
           }}
@@ -210,10 +227,9 @@ export function ValueBarEdit({
                 </Box>
               </IconButton>
               <IconButton
-                onClick={() => {
-                  dispatch(changeCurrent(state.values.current + 5));
-                  dispatch(changeTotal(Number(currentInput.current)));
-                }}
+                onClick={() =>
+                  dispatch(changeCurrent(state.values.current + 5))
+                }
                 size="small"
                 sx={{
                   color: "white",
@@ -231,22 +247,22 @@ export function ValueBarEdit({
             <Grid container gap={1}>
               <Grid item xs={5}>
                 <TextField
-                  inputRef={currentInput}
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
                   type="number"
                   label="Atual"
                   size="small"
-                  value={state.values.current}
                   inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
                   sx={{ width: 70 }}
                 />
               </Grid>
               <Grid item xs={5}>
                 <TextField
-                  inputRef={totalInput}
+                  value={totalInput}
+                  onChange={(e) => setTotalInput(e.target.value)}
                   type="number"
                   label="Total"
                   size="small"
-                  value={state.values.total}
                   inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
                   sx={{ width: 70 }}
                 />
